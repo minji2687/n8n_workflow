@@ -1,0 +1,71 @@
+{
+  "name": "[Minji] 웹훅 슬랙 알림 (Webhook)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-alert",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "7656fae2-7c2c-44f0-a8ac-cc631a3f2ba0"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BT9GU0XJ9",
+          "mode": "id"
+        },
+        "text": "={{ $json.body.message }}",
+        "otherOptions": {}
+      },
+      "id": "slack-node",
+      "name": "Slack 알림",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        464,
+        304
+      ],
+      "webhookId": "fd549b73-7348-4efd-b40a-aa61e4e1abbb",
+      "credentials": {
+        "slackApi": {
+          "id": "NshECZVy4T3HS7hJ",
+          "name": "Slack account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Slack 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "binaryMode": "separate"
+  },
+  "active": true,
+  "id": "vVwr5B9fvqK4T670"
+}
