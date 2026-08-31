@@ -1,0 +1,125 @@
+{
+  "name": "인기 뉴스 1건 이메일 발송",
+  "nodes": [
+    {
+      "id": "0d18cea4-7c9e-4612-9a33-23c1d0da38f7",
+      "name": "매일 오전 8시",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "c0812f1a-8585-4394-be0f-524c11b53621",
+      "name": "인기 뉴스 RSS 조회",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "url": "https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko"
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "be98181c-c86f-4f4e-bbfa-2de7bde6a1bf",
+      "name": "인기 뉴스 1건 추출",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "maxItems": 1,
+        "keep": "firstItems"
+      }
+    },
+    {
+      "id": "4bd07f9d-cf72-4132-9e72-db0ea3962f5f",
+      "name": "이메일 발송 (SMTP)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "fromEmail": "minji2687@gmail.com",
+        "toEmail": "minji2687@gmail.com",
+        "subject": "=[오늘의 인기 뉴스] {{ $json.title }}",
+        "emailFormat": "html",
+        "html": "=<h2>{{ $json.title }}</h2><p>{{ $json.contentSnippet || $json.content || '' }}</p><p><a href=\"{{ $json.link }}\">기사 원문 보기</a></p><p style=\"color:#888;font-size:12px;\">발행: {{ $json.pubDate }}</p>",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "Jh8y11dl3bt8Lcsr",
+          "name": "Gmail SMTP (minji2687)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "webhookId": "b14ef225-cadd-4a9b-b469-20d66acad178"
+    }
+  ],
+  "connections": {
+    "매일 오전 8시": {
+      "main": [
+        [
+          {
+            "node": "인기 뉴스 RSS 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "인기 뉴스 RSS 조회": {
+      "main": [
+        [
+          {
+            "node": "인기 뉴스 1건 추출",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "인기 뉴스 1건 추출": {
+      "main": [
+        [
+          {
+            "node": "이메일 발송 (SMTP)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "Asia/Seoul"
+  },
+  "active": false,
+  "id": "XEpJRt6ZTjJKhhME"
+}
