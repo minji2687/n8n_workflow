@@ -1,0 +1,152 @@
+{
+  "name": "[Minji] 날씨·뉴스 아침 브리핑 (Schedul)",
+  "nodes": [
+    {
+      "id": "840ba8c1-2959-4af5-94f7-7c306b89733c",
+      "name": "매일 9시 트리거",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 9,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "6d7cf24e-a390-401a-9791-a297d0ba4afe",
+      "name": "날씨 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Asia%2FSeoul",
+        "method": "GET",
+        "options": {}
+      }
+    },
+    {
+      "id": "ece9bbd8-9425-40fb-b537-d0dfa02b2d45",
+      "name": "인기 뉴스",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "url": "https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko"
+      }
+    },
+    {
+      "id": "5eb756f1-2df8-44ca-b42a-a2adf917ad8f",
+      "name": "메시지 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const weatherCodeMap = {\n  0: '맑음', 1: '대체로 맑음', 2: '부분적으로 흐림', 3: '흐림',\n  45: '안개', 48: '서리 안개',\n  51: '가벼운 이슬비', 53: '이슬비', 55: '강한 이슬비',\n  61: '가벼운 비', 63: '비', 65: '강한 비',\n  71: '가벼운 눈', 73: '눈', 75: '강한 눈',\n  80: '소나기', 81: '강한 소나기', 82: '매우 강한 소나기',\n  95: '뇌우', 96: '우박을 동반한 뇌우', 99: '강한 우박을 동반한 뇌우'\n};\n\nconst weather = $('날씨 조회').first().json.current;\nconst weatherDesc = weatherCodeMap[weather.weather_code] || '알 수 없음';\n\nconst newsItems = $('인기 뉴스').all().slice(0, 5);\nconst newsText = newsItems\n  .map((item, i) => `${i + 1}. ${item.json.title}`)\n  .join('\\n');\n\nconst today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' });\n\nconst message = [\n  `📅 ${today} 아침 브리핑`,\n  '',\n  `🌤 오늘의 서울 날씨: ${weatherDesc}, ${weather.temperature_2m}°C (습도 ${weather.relative_humidity_2m}%, 풍속 ${weather.wind_speed_10m}m/s)`,\n  '',\n  `📰 오늘의 인기 뉴스 TOP 5`,\n  newsText\n].join('\\n');\n\nreturn [{ json: { message } }];"
+      }
+    },
+    {
+      "id": "33e6b305-ce11-4510-a2d5-96087cf82900",
+      "name": "슬랙 알림",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        1120,
+        300
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C0BT9GU0XJ9",
+          "mode": "id"
+        },
+        "text": "={{ $json.message }}",
+        "otherOptions": {}
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "NshECZVy4T3HS7hJ",
+          "name": "Slack account 2"
+        }
+      },
+      "webhookId": "260d788c-e2df-4b98-ba1e-96098f1912c7"
+    }
+  ],
+  "connections": {
+    "매일 9시 트리거": {
+      "main": [
+        [
+          {
+            "node": "날씨 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "날씨 조회": {
+      "main": [
+        [
+          {
+            "node": "인기 뉴스",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "인기 뉴스": {
+      "main": [
+        [
+          {
+            "node": "메시지 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메시지 포맷": {
+      "main": [
+        [
+          {
+            "node": "슬랙 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  },
+  "active": true,
+  "id": "nOvl3V1gnfBelUt8"
+}
