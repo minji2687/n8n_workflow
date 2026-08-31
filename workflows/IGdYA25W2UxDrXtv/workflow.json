@@ -1,0 +1,287 @@
+{
+  "name": "[Minji] 프로젝트 GitHub 백업 (Schedul)",
+  "nodes": [
+    {
+      "id": "a1e6b305-ce11-4510-a2d5-96087cf82901",
+      "name": "매일 21:50 트리거",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 21,
+              "triggerAtMinute": 50
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "0c62b9b0-66f2-43bd-9ea1-38626cc80795",
+      "name": "워크플로우 목록",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "resource": "workflow",
+        "operation": "getAll"
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "0gZFkNfKLgoyaJWy",
+          "name": "n8n API (self)"
+        }
+      }
+    },
+    {
+      "id": "21053bad-93c6-47e7-9eef-979f22e8bba1",
+      "name": "워크플로우 상세",
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "resource": "workflow",
+        "operation": "get",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        }
+      },
+      "credentials": {
+        "n8nApi": {
+          "id": "0gZFkNfKLgoyaJWy",
+          "name": "n8n API (self)"
+        }
+      }
+    },
+    {
+      "id": "a302475d-a94d-454c-8ac7-1f1dac848f45",
+      "name": "GitHub 페이로드 준비",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const wf = $input.item.json;\nconst path = `workflows/${wf.id}/workflow.json`;\nconst exportObj = {\n  name: wf.name,\n  nodes: wf.nodes,\n  connections: wf.connections,\n  settings: wf.settings,\n  active: wf.active,\n  id: wf.id\n};\nconst content = JSON.stringify(exportObj, null, 2);\nconst contentBase64 = Buffer.from(content, 'utf-8').toString('base64');\n\nreturn {\n  json: {\n    id: wf.id,\n    name: wf.name,\n    path,\n    contentBase64,\n    commitMessage: `Automated backup: ${wf.name} (${new Date().toISOString()})`\n  }\n};"
+      }
+    },
+    {
+      "id": "59e8ca2a-b99a-4cf7-bf79-ba0b640db16e",
+      "name": "기존 SHA 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        300
+      ],
+      "parameters": {
+        "url": "=https://api.github.com/repos/minji2687/n8n_workflow/contents/{{ $json.path }}",
+        "method": "GET",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "yo3KCnXk8pRZ7xTY",
+          "name": "GitHub PAT (Authorization Header)"
+        }
+      }
+    },
+    {
+      "id": "c5300b49-d517-47b1-9d01-74b55e8ce1cd",
+      "name": "SHA 병합",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const prep = $('GitHub 페이로드 준비').item.json;\nconst shaLookup = $input.item.json;\nconst sha = shaLookup && shaLookup.sha ? shaLookup.sha : undefined;\n\nconst body = {\n  message: prep.commitMessage,\n  content: prep.contentBase64\n};\nif (sha) body.sha = sha;\n\nreturn { json: { path: prep.path, body } };"
+      }
+    },
+    {
+      "id": "bc80dc02-cd82-4de1-a872-4b950db40b9",
+      "name": "GitHub Push",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1560,
+        300
+      ],
+      "parameters": {
+        "url": "=https://api.github.com/repos/minji2687/n8n_workflow/contents/{{ $json.path }}",
+        "method": "PUT",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 500
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "yo3KCnXk8pRZ7xTY",
+          "name": "GitHub PAT (Authorization Header)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "temp-test-webhook-ghbackup",
+      "name": "임시 테스트 웹훅",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        480
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "test-gh-backup",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "c3a041b9-95e4-40b8-96fd-d7bf3ef6fd83"
+    }
+  ],
+  "connections": {
+    "매일 21:50 트리거": {
+      "main": [
+        [
+          {
+            "node": "워크플로우 목록",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "워크플로우 목록": {
+      "main": [
+        [
+          {
+            "node": "워크플로우 상세",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "워크플로우 상세": {
+      "main": [
+        [
+          {
+            "node": "GitHub 페이로드 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub 페이로드 준비": {
+      "main": [
+        [
+          {
+            "node": "기존 SHA 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "기존 SHA 조회": {
+      "main": [
+        [
+          {
+            "node": "SHA 병합",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SHA 병합": {
+      "main": [
+        [
+          {
+            "node": "GitHub Push",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "임시 테스트 웹훅": {
+      "main": [
+        [
+          {
+            "node": "워크플로우 목록",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  },
+  "active": true,
+  "id": "IGdYA25W2UxDrXtv"
+}
