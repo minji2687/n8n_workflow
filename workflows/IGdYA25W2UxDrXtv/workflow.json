@@ -194,6 +194,20 @@
         "options": {}
       },
       "webhookId": "c3a041b9-95e4-40b8-96fd-d7bf3ef6fd83"
+    },
+    {
+      "id": "5e34add6-a511-4d01-9551-f483bddd9666",
+      "name": "순차 처리 루프",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        460
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
     }
   ],
   "connections": {
@@ -230,17 +244,6 @@
         ]
       ]
     },
-    "GitHub 페이로드 준비": {
-      "main": [
-        [
-          {
-            "node": "기존 SHA 조회",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "기존 SHA 조회": {
       "main": [
         [
@@ -268,6 +271,40 @@
         [
           {
             "node": "워크플로우 목록",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub 페이로드 준비": {
+      "main": [
+        [
+          {
+            "node": "순차 처리 루프",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "순차 처리 루프": {
+      "main": [
+        [],
+        [
+          {
+            "node": "기존 SHA 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub Push": {
+      "main": [
+        [
+          {
+            "node": "순차 처리 루프",
             "type": "main",
             "index": 0
           }
