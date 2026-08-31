@@ -1,0 +1,51 @@
+{
+  "name": "[Minji] 좋은 글귀 생성기 (Manual)",
+  "nodes": [
+    {
+      "id": "manual-trigger",
+      "name": "트리거",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "quote-generator",
+      "name": "글귀 생성",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const quotes = [\n  '오늘 걷지 않으면 내일은 뛰어야 한다.',\n  '천 리 길도 한 걸음부터.',\n  '실패는 성공의 어머니다.',\n  '가장 큰 위험은 위험 없는 삶이다.',\n  '지금 이 순간이 가장 젊은 날이다.',\n  '포기하지 않으면 실패하지 않는다.',\n  '작은 습관이 큰 변화를 만든다.',\n  '어제보다 나은 오늘을 살자.',\n  '실행이 답이다.',\n  '꿈은 이루어질 때까지 꿈이다.'\n];\n\nconst quote = quotes[Math.floor(Math.random() * quotes.length)];\n\nreturn [{ json: { quote } }];"
+      }
+    }
+  ],
+  "connections": {
+    "트리거": {
+      "main": [
+        [
+          {
+            "node": "글귀 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  },
+  "active": false,
+  "id": "XEtFSKlKCXiwLVyS"
+}
