@@ -1,0 +1,192 @@
+{
+  "name": "Slack 메시지 → 구글캘린더 예약 등록",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "id": "4991eaa0-30cb-405d-ba32-28099d417e66",
+      "name": "매 5분 폴링",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst oldest = staticData.lastTs || (Date.now() / 1000 - 600).toFixed(6);\nreturn [{ json: { oldest } }];"
+      },
+      "id": "80eb3c51-e16f-417f-b5b4-fe48fb4dc483",
+      "name": "폴링 시작 시각 계산",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "channel",
+        "operation": "history",
+        "channelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "filters": {
+          "inclusive": false,
+          "oldest": "={{ $json.oldest }}"
+        }
+      },
+      "id": "472fa72d-8b6a-4222-a872-852dfa6cff89",
+      "name": "채널 메시지 조회",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        688,
+        304
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "webhookId": "231f072d-3f68-4c3b-ad91-72e977bb3a3b",
+      "credentials": {
+        "slackApi": {
+          "id": "NshECZVy4T3HS7hJ",
+          "name": "Slack account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItems = $input.all();\nlet rawMessages;\nif (inputItems.length === 1 && Array.isArray(inputItems[0].json.messages)) {\n  rawMessages = inputItems[0].json.messages;\n} else {\n  rawMessages = inputItems.map(i => i.json);\n}\n\nconst staticData = $getWorkflowStaticData('global');\nconst lastTs = parseFloat(staticData.lastTs || '0');\n\nconst newMessages = rawMessages.filter(m => {\n  if (!m || !m.ts) return false;\n  if (m.bot_id || m.subtype === 'bot_message') return false;\n  return parseFloat(m.ts) > lastTs;\n});\n\nif (rawMessages.length > 0) {\n  const maxTs = Math.max(...rawMessages.map(m => parseFloat(m.ts || '0')));\n  if (maxTs > lastTs) staticData.lastTs = String(maxTs);\n}\n\nreturn newMessages.map(m => ({ json: { text: m.text, ts: m.ts, user: m.user } }));"
+      },
+      "id": "671fc751-95f2-4919-a537-8b8498528d4b",
+      "name": "새 메시지 필터링",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "minji2687@gmail.com",
+          "mode": "list",
+          "cachedResultName": "minji2687@gmail.com"
+        },
+        "start": "={{ $json.startDateTime }}",
+        "end": "={{ DateTime.fromISO($json.startDateTime).plus({ minutes: $json.durationMinutes || 60 }).toISO() }}",
+        "additionalFields": {
+          "summary": "={{ $json.title }}"
+        }
+      },
+      "id": "aa696e76-3b05-4d25-b323-2015dabb77f1",
+      "name": "구글 캘린더 일정 생성",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1344,
+        304
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "u2770RLspOyLjxHg",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\nconst now = DateTime.now().setZone('Asia/Seoul');\n\nfor (const item of items) {\n  const text = (item.json.text || '').trim();\n  if (!text) continue;\n\n  let match;\n\n  match = text.match(/^(오늘|내일|모레)\\s+(\\d{1,2}):(\\d{2})\\s+(.+)$/);\n  if (match) {\n    const [, dayWord, hh, mm, content] = match;\n    const offset = dayWord === '오늘' ? 0 : dayWord === '내일' ? 1 : 2;\n    const baseDate = now.plus({ days: offset }).set({ hour: parseInt(hh, 10), minute: parseInt(mm, 10), second: 0, millisecond: 0 });\n    results.push({ json: { title: content.trim(), startDateTime: baseDate.toISO(), durationMinutes: 60 } });\n    continue;\n  }\n\n  match = text.match(/^(\\d{4}-\\d{2}-\\d{2})\\s+(\\d{1,2}):(\\d{2})\\s+(.+)$/);\n  if (match) {\n    const [, dateStr, hh, mm, content] = match;\n    const baseDate = DateTime.fromISO(`${dateStr}T${hh.padStart(2, '0')}:${mm}:00`, { zone: 'Asia/Seoul' });\n    results.push({ json: { title: content.trim(), startDateTime: baseDate.toISO(), durationMinutes: 60 } });\n    continue;\n  }\n\n  match = text.match(/^(\\d{1,2})\\/(\\d{1,2})\\s+(\\d{1,2}):(\\d{2})\\s+(.+)$/);\n  if (match) {\n    const [, mo, da, hh, mm, content] = match;\n    const baseDate = DateTime.fromObject(\n      { year: now.year, month: parseInt(mo, 10), day: parseInt(da, 10), hour: parseInt(hh, 10), minute: parseInt(mm, 10) },\n      { zone: 'Asia/Seoul' }\n    );\n    results.push({ json: { title: content.trim(), startDateTime: baseDate.toISO(), durationMinutes: 60 } });\n    continue;\n  }\n}\n\nreturn results;"
+      },
+      "id": "7f508949-a6fc-4daf-b3a1-8a02dc2bc773",
+      "name": "규칙 기반 일정 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        304
+      ]
+    }
+  ],
+  "connections": {
+    "매 5분 폴링": {
+      "main": [
+        [
+          {
+            "node": "폴링 시작 시각 계산",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "폴링 시작 시각 계산": {
+      "main": [
+        [
+          {
+            "node": "채널 메시지 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "채널 메시지 조회": {
+      "main": [
+        [
+          {
+            "node": "새 메시지 필터링",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "새 메시지 필터링": {
+      "main": [
+        [
+          {
+            "node": "규칙 기반 일정 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "규칙 기반 일정 파싱": {
+      "main": [
+        [
+          {
+            "node": "구글 캘린더 일정 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "Asia/Seoul",
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "active": false,
+  "id": "8ENB0K83vjrKgSfE"
+}
