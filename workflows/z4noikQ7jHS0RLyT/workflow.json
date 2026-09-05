@@ -1,0 +1,178 @@
+{
+  "name": "멜론차트 크롤링 → 구글시트 기록",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "8a0044e1-8c66-4993-ab6e-1b15c3b44068",
+      "name": "수동 실행",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v2/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"url\": \"https://www.melon.com/chart/index.htm\",\n  \"formats\": [\n    {\n      \"type\": \"json\",\n      \"schema\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"chart\": {\n            \"type\": \"array\",\n            \"description\": \"멜론 차트 순위 목록 (최대 100위)\",\n            \"items\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"rank\": { \"type\": \"integer\", \"description\": \"순위\" },\n                \"title\": { \"type\": \"string\", \"description\": \"곱 제목\" },\n                \"artist\": { \"type\": \"string\", \"description\": \"가수명\" }\n              },\n              \"required\": [\"rank\", \"title\", \"artist\"]\n            }\n          }\n        },\n        \"required\": [\"chart\"]\n      },\n      \"prompt\": \"이 페이지는 멜론(Melon) 음악 차트입니다. 차트에 표시된 각 곱의 순위(rank), 곱 제목(title), 가수명(artist)을 순서대로 추출하여 chart 배열로 반환해줘. 최대 100위까지 모두 포함해줘.\"\n    }\n  ],\n  \"waitFor\": 3000,\n  \"timeout\": 60000\n}",
+        "options": {}
+      },
+      "id": "b64ecad6-3ccf-47c8-ad1f-282c7b3c661a",
+      "name": "Firecrawl로 멜론차트 크롤링",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        688,
+        304
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "TQZy7hKEdX940tOI",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.json.chart",
+        "options": {}
+      },
+      "id": "04f0fdc9-dfa1-40fb-8471-1a4684366baf",
+      "name": "차트 배열 분리",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        912,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1j_E1XvAhzQnilhS-sMfvqRVrHG4uf_CiVpjpwg3cL1Y",
+          "mode": "list",
+          "cachedResultName": "멜론 차트 ",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1j_E1XvAhzQnilhS-sMfvqRVrHG4uf_CiVpjpwg3cL1Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "시트1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1j_E1XvAhzQnilhS-sMfvqRVrHG4uf_CiVpjpwg3cL1Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "순위": "={{ $json.rank }}",
+            "곡제목": "={{ $json.title }}",
+            "가수": "={{ $json.artist }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "순위",
+              "displayName": "순위",
+              "type": "number",
+              "required": false,
+              "display": true,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "곡제목",
+              "displayName": "곡제목",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "가수",
+              "displayName": "가수",
+              "type": "string",
+              "required": false,
+              "display": true,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b0e0a1c2-1234-4a5b-9c6d-7e8f9a0b1c2d",
+      "name": "구글 시트에 기록",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        304
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LknNmNKpRjxMJul2",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Firecrawl로 멜론차트 크롤링": {
+      "main": [
+        [
+          {
+            "node": "차트 배열 분리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "차트 배열 분리": {
+      "main": [
+        [
+          {
+            "node": "구글 시트에 기록",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "수동 실행": {
+      "main": [
+        [
+          {
+            "node": "Firecrawl로 멜론차트 크롤링",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "binaryMode": "separate"
+  },
+  "active": false,
+  "id": "z4noikQ7jHS0RLyT"
+}
