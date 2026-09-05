@@ -1,0 +1,131 @@
+{
+  "name": "카카오톡 나에게 알림 (웹훅)",
+  "nodes": [
+    {
+      "id": "f619d837-6c71-424e-bc1a-e89f4a6dbe2e",
+      "name": "웹훅 수신",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kakao-notify",
+        "responseMode": "responseNode"
+      },
+      "webhookId": "e81c3881-193d-4cd5-a4f4-4086787b398a"
+    },
+    {
+      "id": "b3806fe5-347b-4406-8a4a-0a5f857e1a16",
+      "name": "카카오톡 나에게 보내기",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://kapi.kakao.com/v2/api/talk/memo/default/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "template_object",
+              "value": "={{ JSON.stringify({ object_type: 'text', text: $json.body.message || '알림 내용이 없습니다.', link: { web_url: 'https://developers.kakao.com', mobile_web_url: 'https://developers.kakao.com' }, button_title: '확인' }) }}"
+            }
+          ]
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "oAuth2Api": {
+          "id": "nEGq5YFV3f4ZTVjv",
+          "name": "Kakao OAuth2"
+        }
+      }
+    },
+    {
+      "id": "4ec43676-f157-44d4-b6aa-9aa6cbfdc2b7",
+      "name": "성공 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        680,
+        220
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"sent\" } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "84980b6d-d729-4a46-bda6-943eecaa3f1",
+      "name": "실패 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        680,
+        400
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"kakao_send_failed\", \"message\": $json.error?.message || '카카오톡 전송 실패' } }}",
+        "options": {
+          "responseCode": 502
+        }
+      }
+    }
+  ],
+  "connections": {
+    "웹훅 수신": {
+      "main": [
+        [
+          {
+            "node": "카카오톡 나에게 보내기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "카카오톡 나에게 보내기": {
+      "main": [
+        [
+          {
+            "node": "성공 응답",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실패 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  },
+  "active": false,
+  "id": "X9faeVh2r572jVWS"
+}
