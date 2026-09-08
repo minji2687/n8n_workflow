@@ -1,0 +1,125 @@
+{
+  "name": "[공통] 카카오톡 나에게 알림 전송 (Webhook)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kakao-notify",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d4e5f6a7-0001-4000-8000-000000000001",
+      "name": "Webhook 수신",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "e76d41ee-269f-405a-aabb-aa04cb9723cb"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Webhook 본문에서 메시지/링크 추출\nconst hook = $('Webhook 수신').item.json;\nconst payload = hook.body || hook.query || {};\nconst message = (payload.message || payload.text || '알림').toString();\nconst link = (payload.link || payload.url || '').toString();\n\nconst templateObject = {\n  object_type: 'text',\n  text: message,\n  link: link\n    ? { web_url: link, mobile_web_url: link }\n    : { web_url: 'https://developers.kakao.com', mobile_web_url: 'https://developers.kakao.com' },\n};\nif (link) templateObject.button_title = '열기';\n\nreturn {\n  json: {\n    template_object: JSON.stringify(templateObject),\n  },\n};\n"
+      },
+      "id": "d4e5f6a7-0003-4000-8000-000000000003",
+      "name": "메시지 조립",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://kapi.kakao.com/v2/api/talk/memo/default/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "template_object",
+              "value": "={{ $json.template_object }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4e5f6a7-0004-4000-8000-000000000004",
+      "name": "카카오 나에게 전송",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        800,
+        304
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "id": "InUuDsDeUffcORtd",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"kakao\": $json } }}",
+        "options": {}
+      },
+      "id": "d4e5f6a7-0005-4000-8000-000000000005",
+      "name": "응답 반환",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        304
+      ]
+    }
+  ],
+  "connections": {
+    "메시지 조립": {
+      "main": [
+        [
+          {
+            "node": "카카오 나에게 전송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "카카오 나에게 전송": {
+      "main": [
+        [
+          {
+            "node": "응답 반환",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook 수신": {
+      "main": [
+        [
+          {
+            "node": "메시지 조립",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "t9g8N8Ims7wra8L9"
+  },
+  "active": true,
+  "id": "29ljQsZZZTzbm2Mh"
+}
