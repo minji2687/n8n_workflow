@@ -1,0 +1,97 @@
+{
+  "name": "[공통] 노션 글 작성 (Webhook)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "notion-write",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "n8n0001-0001-4000-8000-000000000001",
+      "name": "Webhook 수신",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        304
+      ],
+      "webhookId": "4a6a2ced-b50b-4a9d-a9a5-e0767f0b60dc"
+    },
+    {
+      "parameters": {
+        "resource": "page",
+        "operation": "create",
+        "pageId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "3d4b7847e10d80ffb3efc94cc8d590dd"
+        },
+        "title": "={{ $json.body.title }}",
+        "contentType": "markdown",
+        "markdown": "={{ $json.body.content }}",
+        "options": {}
+      },
+      "id": "n8n0001-0002-4000-8000-000000000002",
+      "name": "노션 페이지 생성",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        544,
+        304
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "zJOc78JhWBORgtfP",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"notion\": $json } }}",
+        "options": {}
+      },
+      "id": "n8n0001-0003-4000-8000-000000000003",
+      "name": "응답 반환",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        848,
+        304
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook 수신": {
+      "main": [
+        [
+          {
+            "node": "노션 페이지 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "노션 페이지 생성": {
+      "main": [
+        [
+          {
+            "node": "응답 반환",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "errorWorkflow": "t9g8N8Ims7wra8L9"
+  },
+  "active": true,
+  "id": "OOb2TnQ7ht3TZyVO"
+}
