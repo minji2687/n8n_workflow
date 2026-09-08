@@ -289,7 +289,8 @@
     "saveDataErrorExecution": "all",
     "saveDataSuccessExecution": "all",
     "saveManualExecutions": true,
-    "saveExecutionProgress": true
+    "saveExecutionProgress": true,
+    "errorWorkflow": "t9g8N8Ims7wra8L9"
   },
   "active": true,
   "id": "IGdYA25W2UxDrXtv"
