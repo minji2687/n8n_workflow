@@ -139,7 +139,8 @@
   "settings": {
     "timezone": "Asia/Seoul",
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "errorWorkflow": "t9g8N8Ims7wra8L9"
   },
   "active": false,
   "id": "Dfr7bCpia7sBiEVp"
