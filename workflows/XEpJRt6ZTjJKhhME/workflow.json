@@ -118,7 +118,8 @@
     }
   },
   "settings": {
-    "timezone": "Asia/Seoul"
+    "timezone": "Asia/Seoul",
+    "errorWorkflow": "t9g8N8Ims7wra8L9"
   },
   "active": false,
   "id": "XEpJRt6ZTjJKhhME"
