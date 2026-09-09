@@ -64,7 +64,8 @@
     "saveDataSuccessExecution": "all",
     "saveManualExecutions": true,
     "saveExecutionProgress": true,
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "errorWorkflow": "t9g8N8Ims7wra8L9"
   },
   "active": true,
   "id": "vVwr5B9fvqK4T670"
